@@ -285,14 +285,20 @@ function toJSON(inst: Instance | TextInstance): ReactTestRendererNode {
   }
 }
 
-function nodeAndSiblingsArray(nodeWithSibling: ?Fiber) {
+function nodeAndSiblingsTrees(nodeWithSibling: ?Fiber) {
   var array = [];
   var node = nodeWithSibling;
   while (node != null) {
     array.push(node);
     node = node.sibling;
   }
-  return array;
+  return array.reduce((treeRoots, nextNode) => {
+    return treeRoots.concat(toTree(nextNode));
+  }, []);
+}
+
+function isChildrenArray(node: Fiber) {
+  return node.child && node.child.sibling;
 }
 
 function toTree(node: ?Fiber) {
@@ -303,28 +309,36 @@ function toTree(node: ?Fiber) {
     case HostRoot: // 3
       return toTree(node.child);
     case ClassComponent:
-      return {
-        nodeType: 'component',
-        type: node.type,
-        props: {...node.memoizedProps},
-        instance: node.stateNode,
-        rendered: toTree(node.child),
-      };
+      if (isChildrenArray(node)) {
+        return nodeAndSiblingsTrees(node.child);
+      } else {
+        return {
+          nodeType: 'component',
+          type: node.type,
+          props: {...node.memoizedProps},
+          instance: node.stateNode,
+          rendered: toTree(node.child),
+        };
+      }
     case FunctionalComponent: // 1
-      return {
-        nodeType: 'component',
-        type: node.type,
-        props: {...node.memoizedProps},
-        instance: null,
-        rendered: toTree(node.child),
-      };
+      if (isChildrenArray(node)) {
+        return nodeAndSiblingsTrees(node.child);
+      } else {
+        return {
+          nodeType: 'component',
+          type: node.type,
+          props: {...node.memoizedProps},
+          instance: null,
+          rendered: toTree(node.child),
+        };
+      }
     case HostComponent: // 5
       return {
         nodeType: 'host',
         type: node.type,
         props: {...node.memoizedProps},
         instance: null, // TODO: use createNodeMock here somehow?
-        rendered: nodeAndSiblingsArray(node.child).map(toTree),
+        rendered: nodeAndSiblingsTrees(node.child),
       };
     case HostText: // 6
       return node.stateNode.text;
