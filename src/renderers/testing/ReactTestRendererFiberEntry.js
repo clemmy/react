@@ -292,9 +292,8 @@ function nodeAndSiblingsTrees(nodeWithSibling: ?Fiber) {
     array.push(node);
     node = node.sibling;
   }
-  return array.reduce((treeRoots, nextNode) => {
-    return treeRoots.concat(toTree(nextNode));
-  }, []);
+  const trees = array.map(toTree);
+  return trees.length ? trees : null;
 }
 
 function isChildrenArray(node: Fiber) {
@@ -309,29 +308,21 @@ function toTree(node: ?Fiber) {
     case HostRoot: // 3
       return toTree(node.child);
     case ClassComponent:
-      if (isChildrenArray(node)) {
-        return nodeAndSiblingsTrees(node.child);
-      } else {
-        return {
-          nodeType: 'component',
-          type: node.type,
-          props: {...node.memoizedProps},
-          instance: node.stateNode,
-          rendered: toTree(node.child),
-        };
-      }
+      return {
+        nodeType: 'component',
+        type: node.type,
+        props: {...node.memoizedProps},
+        instance: node.stateNode,
+        rendered: nodeAndSiblingsTrees(node.child),
+      };
     case FunctionalComponent: // 1
-      if (isChildrenArray(node)) {
-        return nodeAndSiblingsTrees(node.child);
-      } else {
-        return {
-          nodeType: 'component',
-          type: node.type,
-          props: {...node.memoizedProps},
-          instance: null,
-          rendered: toTree(node.child),
-        };
-      }
+      return {
+        nodeType: 'component',
+        type: node.type,
+        props: {...node.memoizedProps},
+        instance: null,
+        rendered: nodeAndSiblingsTrees(node.child),
+      };
     case HostComponent: // 5
       return {
         nodeType: 'host',

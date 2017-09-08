@@ -519,13 +519,15 @@ describe('ReactTestRenderer', () => {
         type: Qoo,
         props: {},
         instance: null,
-        rendered: {
-          nodeType: 'host',
-          type: 'span',
-          props: {className: 'Qoo'},
-          instance: null,
-          rendered: ['Hello World!'],
-        },
+        rendered: [
+          {
+            nodeType: 'host',
+            type: 'span',
+            props: {className: 'Qoo'},
+            instance: null,
+            rendered: ['Hello World!'],
+          },
+        ],
       }),
     );
   });
@@ -553,7 +555,7 @@ describe('ReactTestRenderer', () => {
     });
   });
 
-  it('toTree() handles functional components that return arrays', () => {
+  it('toTree() handles simple components that return arrays', () => {
     const Foo = ({children}) => children;
 
     const renderer = ReactTestRenderer.create(
@@ -568,51 +570,11 @@ describe('ReactTestRenderer', () => {
     cleanNodeOrArray(tree);
 
     expect(prettyFormat(tree)).toEqual(
-      prettyFormat([
-        {
-          instance: null,
-          nodeType: 'host',
-          props: {},
-          rendered: ['One'],
-          type: 'div',
-        },
-        {
-          instance: null,
-          nodeType: 'host',
-          props: {},
-          rendered: ['Two'],
-          type: 'div',
-        },
-      ]),
-    );
-  });
-
-  it('toTree() handles flattening fragments', () => {
-    class Foo extends React.Component {
-      render() {
-        return this.props.children;
-      }
-    }
-
-    const renderer = ReactTestRenderer.create(
-      <div>
-        <Foo>
-          <div>One</div>
-          <div>Two</div>
-        </Foo>
-        <div>Three</div>
-      </div>,
-    );
-
-    var tree = renderer.toTree();
-
-    cleanNodeOrArray(tree);
-
-    expect(prettyFormat(tree)).toEqual(
       prettyFormat({
-        instance: null,
-        nodeType: 'host',
+        type: Foo,
+        nodeType: 'component',
         props: {},
+        instance: null,
         rendered: [
           {
             instance: null,
@@ -628,15 +590,87 @@ describe('ReactTestRenderer', () => {
             rendered: ['Two'],
             type: 'div',
           },
+        ],
+      }),
+    );
+  });
+
+  it('toTree() handles complicated tree of fragments', () => {
+    class Foo extends React.Component {
+      render() {
+        return this.props.children;
+      }
+    }
+
+    const renderer = ReactTestRenderer.create(
+      <div>
+        <Foo>
+          <div>One</div>
+          <div>Two</div>
+          <Foo>
+            <div>Three</div>
+          </Foo>
+        </Foo>
+        <div>Four</div>
+      </div>,
+    );
+
+    var tree = renderer.toTree();
+
+    cleanNodeOrArray(tree);
+
+    expect(prettyFormat(tree)).toEqual(
+      prettyFormat({
+        type: 'div',
+        instance: null,
+        nodeType: 'host',
+        props: {},
+        rendered: [
           {
+            type: Foo,
+            nodeType: 'component',
+            props: {},
             instance: null,
+            rendered: [
+              {
+                type: 'div',
+                nodeType: 'host',
+                props: {},
+                instance: null,
+                rendered: ['One'],
+              },
+              {
+                type: 'div',
+                nodeType: 'host',
+                props: {},
+                instance: null,
+                rendered: ['Two'],
+              },
+              {
+                type: Foo,
+                nodeType: 'component',
+                props: {},
+                instance: null,
+                rendered: [
+                  {
+                    type: 'div',
+                    nodeType: 'host',
+                    props: {},
+                    instance: null,
+                    rendered: ['Three'],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'div',
             nodeType: 'host',
             props: {},
-            rendered: ['Three'],
-            type: 'div',
+            instance: null,
+            rendered: ['Four'],
           },
         ],
-        type: 'div',
       }),
     );
   });
@@ -692,7 +726,7 @@ describe('ReactTestRenderer', () => {
 
     // we test for the presence of instances before nulling them out
     expect(tree.instance).toBeInstanceOf(Bam);
-    expect(tree.rendered.instance).toBeInstanceOf(Bar);
+    expect(tree.rendered[0].instance).toBeInstanceOf(Bar);
 
     cleanNodeOrArray(tree);
 
@@ -702,46 +736,54 @@ describe('ReactTestRenderer', () => {
         nodeType: 'component',
         props: {},
         instance: null,
-        rendered: {
-          type: Bar,
-          nodeType: 'component',
-          props: {special: true},
-          instance: null,
-          rendered: {
-            type: Foo,
+        rendered: [
+          {
+            type: Bar,
             nodeType: 'component',
-            props: {className: 'special'},
+            props: {special: true},
             instance: null,
-            rendered: {
-              type: 'div',
-              nodeType: 'host',
-              props: {className: 'Foo special'},
-              instance: null,
-              rendered: [
-                {
-                  type: 'span',
-                  nodeType: 'host',
-                  props: {className: 'Foo2'},
-                  instance: null,
-                  rendered: ['Literal'],
-                },
-                {
-                  type: Qoo,
-                  nodeType: 'component',
-                  props: {},
-                  instance: null,
-                  rendered: {
-                    type: 'span',
+            rendered: [
+              {
+                type: Foo,
+                nodeType: 'component',
+                props: {className: 'special'},
+                instance: null,
+                rendered: [
+                  {
+                    type: 'div',
                     nodeType: 'host',
-                    props: {className: 'Qoo'},
+                    props: {className: 'Foo special'},
                     instance: null,
-                    rendered: ['Hello World!'],
+                    rendered: [
+                      {
+                        type: 'span',
+                        nodeType: 'host',
+                        props: {className: 'Foo2'},
+                        instance: null,
+                        rendered: ['Literal'],
+                      },
+                      {
+                        type: Qoo,
+                        nodeType: 'component',
+                        props: {},
+                        instance: null,
+                        rendered: [
+                          {
+                            type: 'span',
+                            nodeType: 'host',
+                            props: {className: 'Qoo'},
+                            instance: null,
+                            rendered: ['Hello World!'],
+                          },
+                        ],
+                      },
+                    ],
                   },
-                },
-              ],
-            },
+                ],
+              },
+            ],
           },
-        },
+        ],
       }),
     );
   });
