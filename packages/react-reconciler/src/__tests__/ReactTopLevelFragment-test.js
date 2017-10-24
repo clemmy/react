@@ -89,6 +89,29 @@ describe('ReactTopLevelFragment', function() {
     expect(instanceB).not.toBe(instanceA);
   });
 
+  it('preserves state between reorders in an array', function() {
+    var ops = [];
+
+    class Stateful extends React.Component {
+      componentDidUpdate() {
+        ops.push('update');
+      }
+
+      render() {
+        return <div>Hello</div>;
+      }
+    }
+
+    ReactNoop.render([<Stateful key="a" />, []]);
+    ReactNoop.flush();
+
+    ReactNoop.render([[], <Stateful key="a" />]);
+    ReactNoop.flush();
+
+    expect(ops).toEqual(['update']);  // ops == [], FAIL
+  });
+
+
   it('preserves state if an implicit key slot switches from/to null', function() {
     var instance = null;
 
